@@ -5,14 +5,22 @@ import time
 def timer():
     return time.time()
 
+#parameters
 num_factors = 10
-num_iter = 75
+num_iter = 5
 regularization = 0.05
 lr = 0.005
 folds=5
 
 #to make sure you are able to repeat results, set the random seed to something:
 np.random.seed(17)
+
+#read rating data 
+ratings = np.genfromtxt("D:/Leiden/Semester 1_Sept/Assignment1/AiDM/ml-1m/ratings.dat", usecols=(0,1,2), delimiter='::',dtype='int')
+
+#number of users and movies in data. 
+num_users= np.max(ratings[:,0])
+num_movies= np.max(ratings[:,1])
 
 
 def split_matrix(ratings, num_users, num_movies):
@@ -28,7 +36,7 @@ def split_matrix(ratings, num_users, num_movies):
 def mf_gd(ratings, num_users, num_movies):
     X_data= split_matrix(ratings, num_users, num_movies)
 
-    X_hat = np.zeros(num_users, num_movies) #predicted rating matrix
+    X_pred = np.zeros(num_users, num_movies) #predicted rating matrix
     err = np.zeros(num_users, num_movies) #error values
 
     # Randomly initialize weights in U and M 
@@ -57,27 +65,24 @@ def mf_gd(ratings, num_users, num_movies):
         M = M_prime
 
         #Intermediate RMSE
-        X_hat = np.dot(U,M)
-        err = X_data-X_hat
+        X_pred = np.dot(U,M)
+        err = X_data-X_pred
         e = err[np.where(np.isnan(err)==False)]
         ir = np.sqrt(np.mean(e**2))
 
-        print ("Error for iteration #", nr, ":", ir)
+        print ("Error for iteration #", nr+1, ":", ir)
 
-    
     #Return the result 
-    X_hat = np.dot(U,M)
-    return X_hat
+    X_pred = np.dot(U,M)
+    return X_pred
 
 
 def mf():
     #Read dataset 
     #ratings = getRatings()
-    ratings = np.genfromtxt("D:/Leiden/Semester 1_Sept/Assignment1/AiDM/ml-1m/ratings.dat", usecols=(0,1,2), delimiter='::',dtype='int')
+    #ratings = np.genfromtxt("D:/Leiden/Semester 1_Sept/Assignment1/AiDM/ml-1m/ratings.dat", usecols=(0,1,2), delimiter='::',dtype='int')
 
-    #number of users and movies in data. 
-    num_users= np.max(ratings[:,0])
-    num_movies= np.max(ratings[:,1])
+   
 
     #print(num_users, num_movies)
     #print(len(ratings))
@@ -96,15 +101,15 @@ def mf():
         
         #Matrix fact
         elapsed=0
-        X_hat = mf_gd(train_set, num_users, num_movies)
+        X_pred = mf_gd(train_set, num_users, num_movies)
 
         elapsed += timer() - start
 
         X_train = split_matrix(train_set, num_users, num_movies)
         X_test = split_matrix(test_set, num_users, num_movies)
 
-        err_train = X_train- X_hat
-        err_test = X_test - X_hat
+        err_train = X_train- X_pred
+        err_test = X_test - X_pred
 
         #RMSE
         e_mf = err_train[np.where(np.isnan(err_train)==False)]
@@ -119,6 +124,5 @@ def mf():
         print("Time: " + str(elapsed % 60) + "seconds")
 mf()
 
-#Still getting a high error rate, not comparable to the website mentioned in the assignment doc. 
-# I need to check the logic again. 
+
 #https://medium.com/coinmonks/recommendation-engine-python-401c080c583e; followed this blogpost 
