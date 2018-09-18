@@ -51,5 +51,3 @@ def getUserItemRecommendation(userId, movieId, ratings=getRatings()):
   beta = np.polyfit(betaEstimates, actual, 1)[0]
   gamma = np.polyfit(gammaEstimates, actual, 1)[0]
   return alpha * meanUserRating + beta * meanItemRating + gamma
-
-print("recommendation is", getUserItemRecommendation(20, 30))
