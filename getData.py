@@ -21,7 +21,7 @@ def getRatings():
       ratings.append(rating)
   return ratings
 
-def getRatingsForMovie(movieId, ratings=getRatings()):
+def getRatingsForMovie(movieId, ratings):
   movieRatings = []
   for rating in ratings:
     if (rating["movieId"] == movieId):
@@ -53,19 +53,18 @@ def getUsers():
       users.append(user)
   return users
 
-def getRatingSets():
-  ratings = getRatings()
+def getRatingSets(ratings):
   nfolds = 5
   np.random.shuffle(ratings)
   sampleSize = len(ratings) / nfolds
   print("each sample set is gonna be", sampleSize)
   # for each fold:
   sets = [
-    {"train": [], "test": [], "min": 0, "max": sampleSize},
-    {"train": [], "test": [], "min": sampleSize, "max": sampleSize * 2},
-    {"train": [], "test": [], "min": sampleSize * 2, "max": sampleSize * 3},
-    {"train": [], "test": [], "min": sampleSize * 3, "max": sampleSize * 4},
-    {"train": [], "test": [], "min": sampleSize * 4, "max": sampleSize * 5}
+    {"train": [], "test": [], "testNumOnly": [], "min": 0, "max": sampleSize},
+    {"train": [], "test": [], "testNumOnly": [], "min": sampleSize, "max": sampleSize * 2},
+    {"train": [], "test": [], "testNumOnly": [], "min": sampleSize * 2, "max": sampleSize * 3},
+    {"train": [], "test": [], "testNumOnly": [], "min": sampleSize * 3, "max": sampleSize * 4},
+    {"train": [], "test": [], "testNumOnly": [], "min": sampleSize * 4, "max": sampleSize * 5}
   ]
   for ratingIndex in range(len(ratings)):
     rating = ratings[ratingIndex]
@@ -74,6 +73,7 @@ def getRatingSets():
         set["train"].append(rating)
       else:
         set["test"].append(rating)
+        set["testNumOnly"].append(rating["rating"])
   return sets
 
 def rmse(predictions, targets):

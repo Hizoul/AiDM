@@ -1,17 +1,43 @@
-from naiveUtil import getMeanGlobalRatingSlow
-from getData import getRatingSets, rmse
+from naiveUtil import resetMeans, getMeanGlobalRatingSlow, getMeanRatingForItem, getMeanRatingForUser, getUserItemRecommendation
+from getData import getRatings, getRatingSets, rmse
 from sklearn import metrics
 import numpy as np
 import time
 import json
+from naiveUtil import prepLinReg
 
-sets = getRatingSets()
+ratings = getRatings()
+sets = getRatingSets(ratings)
 
 
 toTest = [
-  {
+{
     "func": getMeanGlobalRatingSlow,
-    "name": "Global Average",
+    "name": "Global Mean",
+    "rmses": [],
+    "maes": [],
+    "ratings": [],
+    "runtime": []
+  },
+  {
+    "func": getMeanRatingForItem,
+    "name": "Item Mean",
+    "rmses": [],
+    "maes": [],
+    "ratings": [],
+    "runtime": []
+  },
+  {
+    "func": getMeanRatingForUser,
+    "name": "User Mean",
+    "rmses": [],
+    "maes": [],
+    "ratings": [],
+    "runtime": []
+  },
+  {
+    "func": getUserItemRecommendation,
+    "name": "UserItem Recommendation",
     "rmses": [],
     "maes": [],
     "ratings": [],
@@ -22,16 +48,18 @@ toTest = [
 rmseForMeanRating = []
 maeForMeanRating = []
 print("going through subsets")
+i = 0
 for subSet in sets:
+  resetMeans()
+  i += 1
+  print("in subset ", i)
   for algo in toTest:
+    print("testing algo ", algo["name"])
     start = time.time()
     algo["ratings"] = []
     meanRating = []
     # for each test entry, estimate rating using training set
-    i = 0
     for testData in subSet["test"]:
-      print("testset calc ", i)
-      i += 1
       algo["ratings"].append(algo["func"](subSet["train"], testData["movieId"], testData["userId"]))
     # get ratings
     # compare error
