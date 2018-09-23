@@ -15,6 +15,8 @@ def resetMeans():
   calculatedItemMeans = {}
   calculatedUserMeans = {}
 
+# Runtime: O(n)
+# Memory: O(n)
 def getMeanGlobalRatingSlow(ratings, movieId, userId):
   global calculatedMeans
   key = str(ratings[0]["userId"]) + str(ratings[0]["movieId"])
@@ -34,6 +36,10 @@ def getMeanGlobalRatingFast():
   ratings = np.array(allNumericRatings())
   return np.mean(ratings)
 
+
+# Worst Case Runtime: O(n^2)
+# At least once n and in the worst case all ratings are for one movie hence n^2
+# Memory: O(n^2)
 def getMeanRatingForItem(ratings, movieId, userId):
   global calculatedItemMeans
   key = str(movieId) + str(ratings[0]["userId"]) + str(ratings[0]["movieId"])
@@ -53,6 +59,9 @@ def getMeanRatingForItem(ratings, movieId, userId):
   else:
     return calculatedItemMeans[key]
 
+# Worst Case Runtime: O(n^2)
+# At least once n and in the worst case all ratings are by one user hence n^2
+# Memory: O(n^2)
 def getMeanRatingForUser(ratings, movieId, userId):
   global calculatedUserMeans
   key = str(userId) + str(ratings[0]["userId"]) + str(ratings[0]["movieId"])
@@ -76,6 +85,9 @@ alpha = 0.9999999999998403
 beta = 1.000000000000228
 gamma = 0.5000000000030178
 
+# Worst Case Runtime: O(n^6)
+# Combines user n^2 with movie n^2 and global n and has to iterate once over all entries hence n^6
+# Memory: O(n^4)
 def prepLinReg(ratings):
   print("about to prepare linreg params")
   global alpha
@@ -95,6 +107,10 @@ def prepLinReg(ratings):
   gamma = np.polyfit(gammaEstimates, actual, 1)[0]
   print("prepared linreg params", alpha, beta, gamma)
 
+
+# Worst Case Runtime: O(n^5)
+# Combines user n^2 with movie n^2 and global hence n^5
+# Memory: O(n^2)
 def getUserItemRecommendation(ratings, movieId, userId):
   global alpha
   global beta
