@@ -32,3 +32,4 @@ for chart in chartConfigs:
   plt.ylabel(chart["yLabel"])
   plt.title(chart["name"])
   plt.savefig(chart["fileName"])
+  print("Data is ", chart["data"])

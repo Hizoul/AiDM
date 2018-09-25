@@ -37,22 +37,21 @@ def getMeanGlobalRatingFast():
   return np.mean(ratings)
 
 
-# Worst Case Runtime: O(n^2)
-# At least once n and in the worst case all ratings are for one movie hence n^2
-# Memory: O(n^2)
+# Worst Case Runtime: O(R)
+# Memory: O(2)
 def getMeanRatingForItem(ratings, movieId, userId):
   global calculatedItemMeans
   key = str(movieId) + str(ratings[0]["userId"]) + str(ratings[0]["movieId"])
   if calculatedItemMeans.get(key) is None:
-    movieRatings = getRatingsForMovie(movieId, ratings)
-    if len(movieRatings) == 0:
-      return getMeanGlobalRatingSlow(ratings, movieId, userId)
-    else:
-      total = 0.0
-      amount = 0.0
-      for rating in movieRatings:
+    total = 0.0
+    amount = 0.0
+    for rating in ratings:
+      if rating["movieId"] == movieId:
         total += rating["rating"]
         amount += 1
+    if amount == 0:
+      return getMeanGlobalRatingSlow(ratings, movieId, userId)
+    else:
       itemMean = total / amount
       calculatedItemMeans[key] = itemMean
       return itemMean
@@ -66,27 +65,53 @@ def getMeanRatingForUser(ratings, movieId, userId):
   global calculatedUserMeans
   key = str(userId) + str(ratings[0]["userId"]) + str(ratings[0]["movieId"])
   if calculatedUserMeans.get(key) is None:
-    userRatings = getRatingsForUser(userId, ratings)
-    if len(userRatings) == 0:
-      return getMeanGlobalRatingSlow(ratings, movieId, userId)
-    else:
-      total = 0.0
-      amount = 0.0
-      for rating in userRatings:
+    total = 0.0
+    amount = 0.0
+    for rating in ratings:
+      if rating["userId"] == userId:
         total += rating["rating"]
         amount += 1
+    if total == 0:
+      return getMeanGlobalRatingSlow(ratings, movieId, userId)
+    else:
       userMean = total / amount
       calculatedUserMeans[key] = userMean
       return userMean
   else:
     return calculatedUserMeans[key]
 
-alpha = 0.9999999999998403
-beta = 1.000000000000228
-gamma = 0.5000000000030178
+alpha = 0.78212853
+beta = 0.8757397
+gamma = -2.35619748
+
+def simple_linear_regression(X, y):
+    '''
+    Returns slope and intercept for a simple regression line
+    
+    inputs- Works best with numpy arrays, though other similar data structures will work fine.
+        X - input data
+        y - output data
+        
+    outputs - floats
+    '''
+    # initial sums
+    n = float(len(X))
+    sum_x = X.sum()
+    sum_y = y.sum()
+    sum_xy = (X*y).sum()
+    sum_xx = (X**2).sum()
+    
+    # formula for w0
+    slope = (sum_xy - (sum_x*sum_y)/n)/(sum_xx - (sum_x*sum_x)/n)
+    
+    # formula for w1
+    intercept = sum_y/n - slope*(sum_x/n)
+    
+    return [intercept, slope]
 
 # Worst Case Runtime: O(n^6)
-# Combines user n^2 with movie n^2 and global n and has to iterate once over all entries hence n^6
+# Combines user r*m with movie r*u and global r and has to iterate once over all entries
+# optimizable to O(r)
 # Memory: O(n^4)
 def prepLinReg(ratings):
   print("about to prepare linreg params")
@@ -95,22 +120,16 @@ def prepLinReg(ratings):
   global gamma
   alphaEstimates = []
   betaEstimates = []
-  gammaEstimates = []
   actual = []
   for rating in ratings:
     actual.append(rating["rating"])
     alphaEstimates.append(getMeanRatingForUser(ratings, rating["movieId"], rating["userId"]))
     betaEstimates.append(getMeanRatingForItem(ratings, rating["movieId"], rating["userId"]))
-    gammaEstimates.append(getMeanGlobalRatingSlow(ratings, rating["movieId"], rating["userId"]))
-  alpha = np.polyfit(alphaEstimates, actual, 1)[0]
-  beta = np.polyfit(betaEstimates, actual, 1)[0]
-  gamma = np.polyfit(gammaEstimates, actual, 1)[0]
-  print("prepared linreg params", alpha, beta, gamma)
+  coefficients = np.linalg.lstsq(np.vstack([alphaEstimates, betaEstimates, np.ones(len(alphaEstimates))]).T, actual)
+  print("prepared linreg params", coefficients)
 
-
-# Worst Case Runtime: O(n^5)
-# Combines user n^2 with movie n^2 and global hence n^5
-# Memory: O(n^2)
+# Worst Case Runtime: O(R)
+# Memory: O(6)
 def getUserItemRecommendation(ratings, movieId, userId):
   global alpha
   global beta

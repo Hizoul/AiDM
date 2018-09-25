@@ -11,30 +11,6 @@ sets = getRatingSets(ratings)
 
 
 toTest = [
-{
-    "func": getMeanGlobalRatingSlow,
-    "name": "Global Mean",
-    "rmses": [],
-    "maes": [],
-    "ratings": [],
-    "runtime": []
-  },
-  {
-    "func": getMeanRatingForItem,
-    "name": "Item Mean",
-    "rmses": [],
-    "maes": [],
-    "ratings": [],
-    "runtime": []
-  },
-  {
-    "func": getMeanRatingForUser,
-    "name": "User Mean",
-    "rmses": [],
-    "maes": [],
-    "ratings": [],
-    "runtime": []
-  },
   {
     "func": getUserItemRecommendation,
     "name": "UserItem Recommendation",
@@ -59,7 +35,10 @@ for subSet in sets:
     algo["ratings"] = []
     meanRating = []
     # for each test entry, estimate rating using training set
+    b = 0
     for testData in subSet["test"]:
+      b += 1
+      print("doing nr out of", b, len(subSet["test"]))
       algo["ratings"].append(algo["func"](subSet["train"], testData["movieId"], testData["userId"]))
     # get ratings
     # compare error

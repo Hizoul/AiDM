@@ -7,7 +7,7 @@ def timer():
 
 #parameters
 num_factors = 10
-num_iter = 5
+num_iter = 1
 regularization = 0.05
 lr = 0.005
 folds=5
@@ -16,28 +16,30 @@ folds=5
 np.random.seed(17)
 
 #read rating data 
-ratings = np.genfromtxt("D:/Leiden/Semester 1_Sept/Assignment1/AiDM/ml-1m/ratings.dat", usecols=(0,1,2), delimiter='::',dtype='int')
+ratings = np.genfromtxt("./data/ratings.dat", usecols=(0,1,2), delimiter='::',dtype='int')
 
 #number of users and movies in data. 
-num_users= np.max(ratings[:,0])
-num_movies= np.max(ratings[:,1])
 
 
 def split_matrix(ratings, num_users, num_movies):
+    num_users= 6040
+    num_movies= 3952
     #Convert data into (IxJ) matrix
     X= np.zeros((num_users, num_movies))*np.nan
     for r in np.arange(len(ratings)):
-        X[ratings[r,0]-1,ratings[r,1]-1] = ratings[r,2]
+        X[ratings[r]["userId"]-1,ratings[r]["movieId"]-1] = ratings[r]["rating"]
 
     #print(X.shape)
     return X
 
 
-def mf_gd(ratings, num_users, num_movies):
+def mf_gd(ratings, moveId, userId):
+    num_users = 6040
+    num_movies = 3952
     X_data= split_matrix(ratings, num_users, num_movies)
 
-    X_pred = np.zeros(num_users, num_movies) #predicted rating matrix
-    err = np.zeros(num_users, num_movies) #error values
+    X_pred = np.zeros((num_users, num_movies)) #predicted rating matrix
+    err = np.zeros((num_users, num_movies)) #error values
 
     # Randomly initialize weights in U and M 
     U = np.random.rand(num_users, num_factors)
@@ -48,9 +50,9 @@ def mf_gd(ratings, num_users, num_movies):
     
     for nr in np.arange(num_iter):
         for i in np.arange(len(ratings)):
-            userID = ratings[i,0]-1
-            movieID = ratings[i,1]-1
-            actual = ratings[i,2]
+            userID = ratings[i]["userId"]-1
+            movieID = ratings[i]["movieId"]-1
+            actual = ratings[i]["rating"]
             prediction = np.sum(U[userID,:]*M[:,movieID]) 
             error = actual - prediction  #compute e(i,j)
 
@@ -122,7 +124,6 @@ def mf():
         print ('Matrix Factorization Error -> training set: ', error_train_mf)
         print ('Matrix Factorization Error -> test set: ', error_test_mf)
         print("Time: " + str(elapsed % 60) + "seconds")
-mf()
 
 
 #https://medium.com/coinmonks/recommendation-engine-python-401c080c583e; followed this blogpost 
