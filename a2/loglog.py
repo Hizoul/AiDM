@@ -1,5 +1,9 @@
 import hashlib
 import random
+import sys
+import numpy as np
+maxInt = sys.maxsize
+minInt = -sys.maxsize -1
 
 def myHash(astring, tablesize):
     sum = 0
@@ -18,7 +22,7 @@ def countTrailingZeros(num):
   return p
 
 def loglog(values, k):
-  md5 = hashlib.md5()
+  md5 = hashlib.sha1()
   m = 2 ** k
   M = [0] * m
   for value in values:
@@ -30,6 +34,30 @@ def loglog(values, k):
   sumOfM = 0
   for bucketVal in M:
     sumOfM += bucketVal
-  return m * (2 ** ((1 / m) * sumOfM))
+  return 2 ** (float(sum(M)) / m) * m * 0.79402
 
-print([100000/loglog([random.random() for i in range(100000)], 10) for j in range(10)])
+def noHashLogLog(values, k):
+  m = 2 ** k
+  M = [0] * m
+  for value in values:
+    bucketId = value & (m - 1) # Mask out the k least significant bits as bucket ID
+    bucketHash = value >> k
+    M[bucketId] = max(M[bucketId], countTrailingZeros(bucketHash))
+  return 2 ** (float(sum(M)) / m) * m * 0.79402
+
+def relativeApproximationError(estimate, true):
+  return abs(true - estimate) / true
+
+experimentResults = {}
+for trueCount in [64, 128, 1024, 16000, 256000, 512000]:
+  print("experimenting with count", trueCount)
+  countResults = []
+  for cardinality in [2, 4, 6, 8, 10, 16, 20]:
+    print("experimenting with cardinalitry", cardinality)
+    settingResults = []
+    for settingIteration in range(10):
+      estimation = noHashLogLog([random.randint(minInt, maxInt) for i in range(trueCount)], cardinality)
+      settingResults.append(relativeApproximationError(estimation, trueCount))
+    countResults.append(np.mean(settingResults))
+  experimentResults[str(trueCount)] = countResults
+print("results are ", experimentResults)
