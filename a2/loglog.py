@@ -49,14 +49,21 @@ def relativeApproximationError(estimate, true):
   return abs(true - estimate) / true
 
 def generateRandomInput(amount):
-  return [random.randint(minInt, maxInt) for i in range(amount)]
+  randomNums = []
+  added = 0
+  while added < amount:
+    r = random.randint(minInt, maxInt)
+    if r not in randomNums:
+      added += 1
+      randomNums.append(r)
+  return randomNums
 
 def doBasicExperiment():
   experimentResults = {}
-  for trueCount in [64, 128, 1024, 16000, 256000, 512000]:
+  for trueCount in [64, 128, 1024, 16000]:
     print("experimenting with count", trueCount)
     countResults = []
-    for cardinality in [2, 4, 6, 8, 10, 16, 20]:
+    for cardinality in [16]:
       print("experimenting with cardinalitry", cardinality)
       settingResults = []
       for settingIteration in range(10):
@@ -65,4 +72,3 @@ def doBasicExperiment():
       countResults.append(np.mean(settingResults))
     experimentResults[str(trueCount)] = countResults
   print("results are ", experimentResults)
-

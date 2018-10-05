@@ -1,0 +1,92 @@
+\documentclass{article}[]
+\usepackage[textwidth=15cm]{geometry}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage[hyphens]{url}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+\usepackage{pdfpages}
+\usepackage{csvsimple}
+\usepackage{float}
+\usepackage{csquotes}
+\makeatletter
+\newcommand\urlfootnote@[1]{\footnote{\url@{#1}}}
+\DeclareRobustCommand{\urlfootnote}{\hyper@normalise\urlfootnote@}
+\makeatother
+
+\begin{document}
+	\title{Advances in Data Mining - Assignment 2}
+	\author{Anonymous}
+	\maketitle
+	\lstset{
+		basicstyle=\ttfamily,
+		keywordstyle=\bfseries,
+		language=Java,
+		frame=single,
+		aboveskip=11pt,
+		belowskip=11pt,
+		breaklines=true,
+		breakatwhitespace=false,
+		showspaces=false,
+		showstringspaces=false,
+		numbers=left,
+		stepnumber=1,    
+		firstnumber=1,
+		numberfirstline=true
+	}
+
+\section{Abstract}
+%TODO nice abstract that also goes into the practical usage suggestion
+\section{Introduction}
+This paper is the result of fulfilling assignment 2 of the \emph{Advances in Data Mining} course at the \emph{University of Leiden}.
+Within this report two algorithms for counting distinct elements in streams (Section \ref{sec:counting}) are compared and the influence of their parameters evaluated (Section \ref{sec:algorithms}) and discussed.
+
+\subsection{Counting Distinct Elements}
+\label{sec:counting}
+Counting distinct elements always has the following solution structure:
+
+There is a stream of elements $\{x_1,...,x_s\}$ which contains repetitions.
+
+Let n be the number of distinct elements hence $n=|\{x_1,...,x_s\}|$.
+
+The objective is to estimate $\hat{n}$, so that only m storage units are used such that $m << n$.
+
+This may seem trivial, but with an infinite stream of data and a maximum usable amount of memory m it isn't.
+More on these limits can be found in the algorithm explanation (section \ref{sec:algorithms}).
+Real world situations where counting distinct elements would be useful are for example DDoS protection\cite{wang2007defense}, by using an IP-to-hop-count mapping table.
+Another possible example is finding patterns in DNA motives, although the effectiveness of these differ wildly depending on the algorithm and used DNA motif model\cite{das2007survey}.
+
+
+\subsection{Experiment Setup}
+\label{sec:setup}
+In order to evaluate the algorithms, the Relative Approximation Error (Equation \ref{eq:rae}) will be used. This provides a percentage of distance of the original vs. the approximated value
+
+\begin{equation}
+\label{eq:rae}
+RAE = \frac{abs(actual - approximation)}{ actual}
+\cite{assignmentSlides}
+\end{equation}
+\section{Algorithms}
+\label{sec:algorithms}
+\subsection{LogLog (Durand-Flajolet)}
+The loglog algorithm \cite{durand2003loglog}, proposed in 2003 by Durand and Flajolet, tries to minimize the required amount of memory to count distinct elements, while guaranteeing a small error margin.
+It works by allocating m buckets in an array called M.
+$m=2^k$ where k is the amount of bits to be used for counting.
+Every seen value is hashed.
+The k least significant bits are used as bucketId and the amount of starting 0's used as value for that bucketId. If there already was a value then the biggest value of the two will be persisted.
+The arithmetic mean of M, with a small correction can then be expected to approximate the amount of distinct elements.
+
+\begin{equation}
+\label{eq:loglog}
+E := a_m m 2^{\frac{1}{m}\sum M^{(j)}}
+\end{equation}
+
+\section{Results}
+\label{sec:result}
+
+
+\bibliography{report} 
+\bibliographystyle{ieeetr}
+	
+	
+\end{document}

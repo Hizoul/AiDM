@@ -1,5 +1,6 @@
 from loglog import noHashLogLog, relativeApproximationError, generateRandomInput
 import numpy as np
+from fm import flajoletMartin
 import json
 
 def generateNumbersToTryByCardinality(cardinality):
@@ -29,22 +30,21 @@ def generateNumbersToTryByCardinality(cardinality):
 cardinalitiesToTry = []
 
 experimentResults = {}
-for cardinality in range(13):
-  print("experimenting with cardinalitry", cardinality, len(generateNumbersToTryByCardinality(cardinality)))
+for iterationAmount in [5, 10, 15]:
   countResults = []
-  for trueCount in generateNumbersToTryByCardinality(cardinality):
+  for trueCount in generateNumbersToTryByCardinality(iterationAmount):
     if trueCount != 0:
       print("experimenting with count", trueCount)
       settingResults = []
       for settingIteration in range(10):
-        estimation = noHashLogLog(generateRandomInput(trueCount), cardinality)
+        estimation = flajoletMartin(generateRandomInput(trueCount), iterationAmount)
         settingResults.append(relativeApproximationError(estimation, trueCount))
       countResults.append(np.mean(settingResults))
     else:
       countResults.append(0)
     print("countres is", len(countResults))
-    experimentResults[str(cardinality)] = countResults
+    experimentResults[str(iterationAmount)] = countResults
 print(json.dumps(experimentResults))
-file = open("results_all.json", "w")
+file = open("results_all_fm.json", "w")
 file.write(json.dumps(experimentResults))
 file.close()

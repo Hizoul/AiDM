@@ -8,13 +8,13 @@ with open('results_all.json') as f:
 yLabels = []
 
 for isAddition in [False, True]:
-  for i in range(26):
+  for i in range(81):
     if i > 0:
       if isAddition:
         yLabels.append(i)
       else:
         yLabels.append(-i)
-      if i == 25 and not isAddition:
+      if i == 80 and not isAddition:
         yLabels.reverse()
         yLabels.append(0)
 cardinalities = []
@@ -33,10 +33,10 @@ for cardinality in data:
   legendHandles.append(handle)
   legendLabel.append(str(cardinality))
 
-plt.axis([-25, 25, 0, 1])
-plt.xlabel("Distance from Cardinality")
+plt.axis([-80, 80, 0, 1])
+plt.xlabel("Distance in % from actual count")
 plt.ylabel("RAE")
-plt.title("Card")
+plt.title("Relative Approximation Errors over actual count distances")
 plt.legend(legendHandles, legendLabel)
 plt.savefig("test.png")
 
