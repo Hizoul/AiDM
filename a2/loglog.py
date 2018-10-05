@@ -48,16 +48,21 @@ def noHashLogLog(values, k):
 def relativeApproximationError(estimate, true):
   return abs(true - estimate) / true
 
-experimentResults = {}
-for trueCount in [64, 128, 1024, 16000, 256000, 512000]:
-  print("experimenting with count", trueCount)
-  countResults = []
-  for cardinality in [2, 4, 6, 8, 10, 16, 20]:
-    print("experimenting with cardinalitry", cardinality)
-    settingResults = []
-    for settingIteration in range(10):
-      estimation = noHashLogLog([random.randint(minInt, maxInt) for i in range(trueCount)], cardinality)
-      settingResults.append(relativeApproximationError(estimation, trueCount))
-    countResults.append(np.mean(settingResults))
-  experimentResults[str(trueCount)] = countResults
-print("results are ", experimentResults)
+def generateRandomInput(amount):
+  return [random.randint(minInt, maxInt) for i in range(amount)]
+
+def doBasicExperiment():
+  experimentResults = {}
+  for trueCount in [64, 128, 1024, 16000, 256000, 512000]:
+    print("experimenting with count", trueCount)
+    countResults = []
+    for cardinality in [2, 4, 6, 8, 10, 16, 20]:
+      print("experimenting with cardinalitry", cardinality)
+      settingResults = []
+      for settingIteration in range(10):
+        estimation = noHashLogLog(generateRandomInput(trueCount), cardinality)
+        settingResults.append(relativeApproximationError(estimation, trueCount))
+      countResults.append(np.mean(settingResults))
+    experimentResults[str(trueCount)] = countResults
+  print("results are ", experimentResults)
+
