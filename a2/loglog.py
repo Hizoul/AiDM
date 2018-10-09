@@ -1,6 +1,7 @@
 import hashlib
 import random
 import sys
+import json
 import numpy as np
 maxInt = sys.maxsize
 minInt = -sys.maxsize -1
@@ -60,10 +61,10 @@ def generateRandomInput(amount):
 
 def doBasicExperiment():
   experimentResults = {}
-  for trueCount in [64, 128, 1024, 16000]:
+  for trueCount in [250, 1000, 5000, 10000, 50000, 100000]:
     print("experimenting with count", trueCount)
     countResults = []
-    for cardinality in [16]:
+    for cardinality in [2, 4, 6, 8, 10, 12]:
       print("experimenting with cardinalitry", cardinality)
       settingResults = []
       for settingIteration in range(10):
@@ -72,3 +73,7 @@ def doBasicExperiment():
       countResults.append(np.mean(settingResults))
     experimentResults[str(trueCount)] = countResults
   print("results are ", experimentResults)
+  file = open("results_selfchosen.json", "w")
+  file.write(json.dumps(experimentResults))
+  file.close()
+doBasicExperiment()
