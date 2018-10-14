@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.spatial.distance import cosine
-from scipy.sparse import csc_matrix, csr_matrix, lil_matrix
+from scipy.sparse import csc_matrix, csr_matrix, lil_matrix, dok_matrix
 from operator import itemgetter
 import time
 start = time.time()
@@ -14,7 +14,8 @@ bands = 4
 rows = 20
 signatureSize = 75
 amountOfMovies = 17770
-amountOfUsers = 103702
+print("user amm is ", origData[len(origData)  - 1][0])
+amountOfUsers = origData[len(origData)  - 1][0] + 1 # 103702
 k = bands * rows
 
 def jaccardSimilarity(s1, s2):
@@ -22,19 +23,15 @@ def jaccardSimilarity(s1, s2):
 
 print("DATA IS", len(origData))
 
-userMovies = {}
 # size extracted by getting last user entry => users = 103702; assignment text says 17770 movies
 print("creating sparse matrix")
-movieMatrix = lil_matrix((amountOfUsers, amountOfMovies))
-userMovies = {}
-for us in range(amountOfUsers):
-  userMovies[str(us)] = set()
+movieMatrix = dok_matrix((amountOfUsers, amountOfMovies), dtype=np.bool)
 print("processing file", time.time() - start)
 # Prepare sparse matrix of user ratings
+
 for entry in origData:
   movieMatrix[entry[0], entry[1]] = 1
-  key = str(entry[0])
-  userMovies[key].add(entry[1])
+print("DONE PROCESSING FILE", time.time() - start)
 movieMatrix = movieMatrix.tocsc()
 
 # specify the length of each minhash vector
@@ -83,21 +80,23 @@ permutations = []
 for i in range(k):
   permutations.append(np.random.permutation(amountOfMovies))
 def permutingMinHash(val):
-  hashes = []
+  hashes = np.empty([k, signatureSize], dtype=np.bool)
   for v in range(k):
-    hashes.append(val[0, permutations[v]][0, :signatureSize].todense())
+    hashes[v] = val[0, permutations[v]][0, :signatureSize].todense()
   return hashes
 
 
-hashedBands = []
-for i in range(bands):
-  hashedBands.append([])
+hashedBands = np.empty([bands, amountOfUsers, rows, signatureSize], dtype=np.bool)
 print("preparing hashes in bands and rows", time.time() - start)
+c = 0
 for entry in movieMatrix:
-  minHashed = permutingMinHash(entry)
+  minHashed = np.empty([k, signatureSize], dtype=np.bool)
+  for v in range(k):
+    minHashed[v] = entry[0, permutations[v]][0, :signatureSize].todense()
   for i in range(bands):
     b = i + 1
-    hashedBands[i].append(minHashed[(len(minHashed) / bands) * i : (len(minHashed) / bands) * b])
+    hashedBands[i][c] = minHashed[(len(minHashed) / bands) * i : (len(minHashed) / bands) * b]
+  c += 1
 print("Hashed values now creating buckets", time.time() - start)
 buckets = []
 for bucketNr in range(k):
@@ -138,7 +137,7 @@ for bucketId in range(len(buckets)):
         if uId1 != uId2 and str(uId1+uId2) not in alreadyChecked:
           alreadyChecked[str(uId1+uId2)] = True
           pairsWithoutCheck.append((uId1, uId2))
-          similarity = jaccardSimilarity(userMovies[str(uId1)], userMovies[str(uId2)])
+          similarity = jaccardSimilarity(set(np.where(movieMatrix[uId1].todense() == 1)[1].A1), set(np.where(movieMatrix[uId2].todense() == 1)[1].A1))
           if similarity >= 0.5:
             addPairToFile(uId1, uId2)
             pairsWithCheck.append((uId1, uId2, similarity))
