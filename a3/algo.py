@@ -1,26 +1,41 @@
 import numpy as np
 from scipy.spatial.distance import cosine
+from scipy.sparse import csc_matrix, csr_matrix, lil_matrix
+from operator import itemgetter
+import time
+start = time.time()
 np.random.seed(18)
-data = np.load("user_movie.npy")[:10000]
-
-bands = 15
-rows = 10
+origData = np.load("user_movie.npy")
+print("LAST USER IS", origData[len(origData) -1])
+origData = origData
+data = origData
+# threshold t is approx (1 / b)^(1/r)
+bands = 4
+rows = 20
+signatureSize = 75
+amountOfMovies = 17770
+amountOfUsers = 103702
 k = bands * rows
 
 def jaccardSimilarity(s1, s2):
-  return float(len(s1.intersection(s2))) / len(s1.union(s2))
+  return float(len(s1.intersection(s2))) / max(1, len(s1.union(s2)))
 
-print("DATA IS", len(data))
+print("DATA IS", len(origData))
 
 userMovies = {}
-
-for entry in data:
+# size extracted by getting last user entry => users = 103702; assignment text says 17770 movies
+print("creating sparse matrix")
+movieMatrix = lil_matrix((amountOfUsers, amountOfMovies))
+userMovies = {}
+for us in range(amountOfUsers):
+  userMovies[str(us)] = set()
+print("processing file", time.time() - start)
+# Prepare sparse matrix of user ratings
+for entry in origData:
+  movieMatrix[entry[0], entry[1]] = 1
   key = str(entry[0])
-  if key not in userMovies:
-    userMovies[key] = set()
   userMovies[key].add(entry[1])
-
-
+movieMatrix = movieMatrix.tocsc()
 
 # specify the length of each minhash vector
 N = k
@@ -28,14 +43,12 @@ max_val = (2**32)-1
 
 # create N tuples that will serve as permutation functions
 # these permutation values are used to hash all input sets
-for entry in userMovies:
-  perms = [ (np.random.randint(0,max_val), np.random.randint(0,max_val)) for i in range(N)]
 
 # initialize a sample minhash vector of length N
 # each record will be represented by its own vec
 vec = [float('inf') for i in range(N)]
-
-def minhash(s, prime=4294967311):
+primeToUse = len(origData) * 5
+def minhash(s, prime=5000):
   '''
   Given a set `s`, pass each member of the set through all permutation
   functions, and set the `ith` position of `vec` to the `ith` permutation
@@ -66,34 +79,90 @@ def minhash(s, prime=4294967311):
 def getSeedForUserId(entry):
   return int(entry)+10000 *120000
 
+permutations = []
+for i in range(k):
+  permutations.append(np.random.permutation(amountOfMovies))
+def permutingMinHash(val):
+  hashes = []
+  for v in range(k):
+    hashes.append(val[0, permutations[v]][0, :signatureSize].todense())
+  return hashes
+
+
 hashedBands = []
 for i in range(bands):
   hashedBands.append([])
-for entry in userMovies:
-  minHashed = minhash(userMovies[entry], getSeedForUserId(entry))
+print("preparing hashes in bands and rows", time.time() - start)
+for entry in movieMatrix:
+  minHashed = permutingMinHash(entry)
   for i in range(bands):
     b = i + 1
     hashedBands[i].append(minHashed[(len(minHashed) / bands) * i : (len(minHashed) / bands) * b])
+print("Hashed values now creating buckets", time.time() - start)
+buckets = []
+for bucketNr in range(k):
+  buckets.append([])
+for band in range(bands):
+  bandContent = hashedBands[band]
+  for uId1 in range(len(bandContent)):
+    bucketId = hash(str(bandContent[uId1])) % k
+    if uId1 not in buckets[bucketId]:
+      buckets[bucketId].append(uId1)
 
-similarities = []
-found = 0
-for entry in userMovies:
-  hashedEntry = minhash(userMovies[entry], getSeedForUserId(entry))
-  for i in range(bands):
-    if hashedEntry[(len(hashedEntry) / bands) * i : (len(hashedEntry) / bands) * (i+1)] in hashedBands[i]:
-      print("FOUND")
-      found += 1
-      break
-print("FOUND IS", found, len(userMovies))
+print("GOT BUCKETS", time.time() - start)
+
+def sortBuckets(toSort):
+  sortMe = []
+  for i in range(len(toSort)):
+    sortMe.append((i, len(toSort[i])))
+  sortMe.sort(key=itemgetter(1))
+  afterSort = []
+  for i in range(len(sortMe)):
+    afterSort.append(toSort[sortMe[i][0]])
+  return afterSort
+
+def addPairToFile(uId1, uId2):
+  with open("result.txt", "a") as myfile:
+      myfile.write(uId1+","+uId2)
+
+
+
+buckets = sortBuckets(buckets)
+alreadyChecked = {}
+pairsWithoutCheck = []
+pairsWithCheck = []
+for bucketId in range(len(buckets)):
+  if len(buckets[bucketId]) > 1:
+    for uId1 in buckets[bucketId]:
+      for uId2 in buckets[bucketId]:
+        if uId1 != uId2 and str(uId1+uId2) not in alreadyChecked:
+          alreadyChecked[str(uId1+uId2)] = True
+          pairsWithoutCheck.append((uId1, uId2))
+          similarity = jaccardSimilarity(userMovies[str(uId1)], userMovies[str(uId2)])
+          if similarity >= 0.5:
+            addPairToFile(uId1, uId2)
+            pairsWithCheck.append((uId1, uId2, similarity))
+print("PARIS done", pairsWithCheck, time.time() - start)
+
+
+# print("got hashed bands now checking for similarities")
 # similarities = []
-# for entry in userMovies:
-#   for secondEntry in userMovies:
-#     similarities.append(jaccardSimilarity(userMovies[entry], userMovies[secondEntry]))
+# calced = {}
+# i = 0
+# for entry in hashed:
+#   b = 0
+#   for secondEntry in hashed:
+#     if i < b:
+#       similarities.append((jaccardSimilarity(set(entry[0]), set(secondEntry[0])), i, b))
+#     b += 1
+#   i += 1
 
 # amount = 0
 # biggerOne = []
 # for sim in similarities:
-#   if sim > 0.5:
+#   if sim[0] > 0.5 and sim[0] < 1:
 #     amount += 1
 #     biggerOne.append(sim)
-# print("similarities are", amount, similarities, biggerOne)
+# for entry in biggerOne:
+#   print(entry[1], entry[2])
+# print("similarities are", biggerOne, amount, len(hashed), len(similarities))
