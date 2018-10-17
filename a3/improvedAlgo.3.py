@@ -67,7 +67,7 @@ def getSeedForUserId(entry):
 
 permutations = []
 for i in range(k):
-  permutations.append(np.random.permutation(amountOfMovies))
+  permutations.append(np.random.permutation(amountOfMovies)[:signatureSize])
 def permutingMinHash(val):
   hashes = np.empty([k, signatureSize], dtype=np.bool)
   for v in range(k):
@@ -76,8 +76,6 @@ def permutingMinHash(val):
 
 def jaccardSimilarity(s1, s2):
   return float(len(np.intersect1d(s1, s2, assume_unique=True))) / max(1, len(np.union1d(s1, s2)))
-# def jaccardSimilarity(s1, s2):
-#   return float(len(s1.intersection(s2))) / max(1, len(s1.union(s2)))
 
 def sortBuckets(toSort):
   sortMe = []
@@ -111,22 +109,27 @@ hashThreshold = 50
 bucketThreshold = 50
 atUser = 0
 cscMovies = []
+userMovies = []
+currentMovies = []
 for entry in origData:
-  movieMatrix[entry[0], entry[1]] = 1
+  currentMovies.append(entry[1])
   if entry[0] > atUser:
     usersToProcess.append(atUser)
+    userMovies.append(np.array(currentMovies, dtype=np.int16))
+    currentMovies = []
     atUser += 1
     checkBuckets = atUser % bucketThreshold == 0
     doHashes = len(usersToProcess) >= hashThreshold
     timeIsRunningOut = (time.time() - start) > 1700
-    if doHashes or checkBuckets:
-      cscMovies = movieMatrix.tocsc()
     if doHashes:
       for processMe in usersToProcess:
         minHashed = np.empty([k, signatureSize], dtype=np.bool)
-        userEntry = cscMovies[processMe]
+        userEntry = userMovies[processMe]
         for v in range(k):
-          minHashed[v] = userEntry[0, permutations[v]][0, :signatureSize].todense()
+          minHashed[v] = np.zeros([signatureSize], dtype=np.bool)
+          for permVal in range(signatureSize):
+            if permutations[v][permVal] in userEntry:
+              minHashed[v][permVal] = 1
         for i in range(bands):
           b = i + 1
           hashedBands[i][processMe] = minHashed[(len(minHashed) / bands) * i : (len(minHashed) / bands) * b]
@@ -150,7 +153,7 @@ for entry in origData:
               keyVal = str(uId1+uId2)
               if uId1 < uId2 and keyVal not in alreadyChecked:
                 alreadyChecked[keyVal] = True
-                similarity = jaccardSimilarity(np.where(cscMovies[uId1].todense() == 1)[1].A1, np.where(cscMovies[uId2].todense() == 1)[1].A1)
+                similarity = jaccardSimilarity(userMovies[uId1], userMovies[uId2])
                 if similarity >= 0.5:
                   addPairToFile(uId1, uId2)
                   elapsed = time.time() - start / 60
